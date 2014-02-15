@@ -8,42 +8,15 @@
 
 <body>
 <p>
-	<canvas id="canvas" style="border:2px solid black;" width="800" height="200"></canvas>
+	<div id="target" style="border:2px solid black;" width="800" height="200"></div>
+</p>
+<p>
+	<div id="temp" style="border:2px solid black;" width="800" height="200"></div>
 </p>
 <p>
 	<textarea id="editor" style="border:2px solid black;" width="800" height="200"></textarea>
 </p>
 <script>
-
-
-
-var DOMURL = self.URL || self.webkitURL || self;
-
-function render(html) {
-
-	var canvas = document.getElementById("canvas");
-	var ctx = canvas.getContext("2d");
-	
-	var data = "<svg xmlns='http://www.w3.org/2000/svg' width='"+canvas.width +"' height='"+canvas.height+"'>" +
-	             "<foreignObject width='100%' height='100%'>" +
-	               "<div xmlns='http://www.w3.org/1999/xhtml'>" +
-	                 html +
-	               "</div>" +
-	             "</foreignObject>" +
-	           "</svg>";
-
-	var svg = new Blob([data], {type: "image/svg+xml;charset=utf-8"});
-	var url = DOMURL.createObjectURL(svg);
-	var img = new Image();	
-	img.onload = function() {
-		//ctx.clearRect(0,0, canvas.width, canvas.height);
-		canvas.width = this.width;
-		canvas.height = this.height;
-	    ctx.drawImage(img, 0, 0);
-	    DOMURL.revokeObjectURL(url);
-	};
-	img.src = url;
-}
 
 $(document).ready(function () {
     init();
@@ -51,8 +24,8 @@ $(document).ready(function () {
 
 function init() {
     var $content = $('#editor'); // my textarea
-    var $preview = $('#textile-preview'); // the preview div
-
+    var $target = $('#target'); // the preview div
+    var $temp = $('#temp');
 
     // use a simple timer to check if the textarea content has changed
     var value = $content.val();
@@ -61,11 +34,18 @@ function init() {
         var newValue = $content.val();
         if (value != newValue) {
             value = newValue;
-            render(textile.convert(newValue)); // convert the textile to html
+            $temp.empty();
+            $temp.append($.parseHTML(textile.convert(newValue)));
+            html2canvas($temp, {
+	            	onrendered: function(canvas) {
+	            		$target.empty();
+	            		$target.append(canvas);
+	            	}
+            	}
+            ); // convert the textile to html
         }
     }, 500);
 };
-
 </script>
 </body>
 </html>
