@@ -1,26 +1,24 @@
 <!DOCTYPE html>
+<meta charset="UTF-8">
 <html>
 <head>
 	<script type="text/javascript" src="lib/jquery.js"></script>
 	<script type="text/javascript" src="lib/textile.js"></script>
+    <script type="text/javascript" src="utils.js"></script>
+    <script type="text/javascript" src="dummyNodeData.js"></script>
 	<script type="text/javascript" src="main.js"></script>
 	<style>
 		.container {position:relative;}
-		.canvas {border:1px solid gray; width:800px; height:600px;}
-		.node {border-bottom:1px solid black; }
+		.canvas {border:1px solid gray;}
+		.node {border:2px solid black; }
 	</style>
 </head>
 
 <body>
 	<p>
-		<div class="container">
-			<canvas id="target2" class="canvas"></canvas>
-			<div id="nodeContainer"/>
-		</div>
+		<div id="container" class="container"/>
 	</p>
-	<p>
-		<textarea id="editor" height="400"></textarea>
-	</p>
+	
 	<script>
 		$(document).ready(function () {
 		    main();
