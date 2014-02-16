@@ -1,9 +1,6 @@
 function createNode(markdown, x, y) {
     var node = $("<div/>", {class:'node', style:"position:absolute; top:"+y+"px; left:"+x+"px;"});
-    
-    //HACK:
-    $('#nodeContainer').append(node);
-        
+            
     var input = $('<input/>',{
         type: "hidden",
         name: "markdown",
@@ -37,7 +34,7 @@ function main() {
     var contentElem = $('#editor'); // my textarea
 
     var node1 = createNode(contentElem.val(), 20, 20);
-    //$('#nodeContainer').append(node1);
+    $('#nodeContainer').append(node1);
     
 
     // use a simple timer to check if the textarea content has changed
