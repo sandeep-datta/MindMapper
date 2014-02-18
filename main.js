@@ -63,7 +63,7 @@ function showNodeWithDescendents(nodes, id, depth, x, y) {
             console.log("child:"+i);
             var r = showNodeWithDescendents(nodes, children[i], depth+1, x, y);
             y += (r.height + 50);
-            retVal.height += (r.height + 50);
+            retVal.height += r.height;
         }
     }
 
