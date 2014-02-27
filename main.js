@@ -1,12 +1,15 @@
-var gNodeWidgets = {}
+gNodeWidgets = {};
+
+function assert(condition, message) {
+    if (!condition) {
+        throw message || "Assertion failed";
+    }
+}
 
 //TODO: move the layout code into a separate class
 function NodeWidget(nodes, index) {
 	var nodeData = nodes[index];
 	this.text = nodeData.text;
-	
-	this.xSpacing = 50;
-	this.ySpacing = 50;
 	
 	if(nodeData.children != null) {
 		this.children = nodeData.children.map(function(i) {
@@ -15,8 +18,13 @@ function NodeWidget(nodes, index) {
 			}
 			return gNodeWidgets[i];
 		});
+
+		assert(this.children.length == nodeData.children.length);
 	}
 
+
+
+	//console.log(this.children);
 	if(nodeData.visible != null) {
 		this.visible = nodeData.visible.map(function(i) {
 			if(!(i in gNodeWidgets)){
@@ -24,90 +32,102 @@ function NodeWidget(nodes, index) {
 			}
 			return gNodeWidgets[i];
 		});
+		//assert(this.visible.length == nodeData.visible.length);
 	}
 	
-	this.nodeElem = createNodeElem(nodeData);
+	this._nodeElem = createNodeElem(nodeData);
 
-	
+	this.getNodeElem = function() {
+		return this._nodeElem;
+	}
+
 	//Return the div containing this node and its children
-	this.getLayoutDiv = function() {
-		if(this._layoutDiv == null){
-			if(this.children.length > 0) {
-				this._layoutDiv = $("<div/>", {class:'layoutDiv'});
-				this._layoutDiv.width(this.getWidthWithChildren());
-				this._layoutDiv.height(this.getHeightWithChildren());
-
+	this.getLayoutElem = function() {
+		if(this._layoutElem == null) {
+			//console.log("getLayoutElem():text:" + this.text);
+			
+			if(this.children != null && this.children.length > 0) {
+				this._layoutElem = createHlayout();
+				addElemToHLayout(this._layoutElem, this.getNodeElem());
+				
+				var vl = createVlayout();
 				for(var i=0; i<this.children.length; ++i){
-					this._layoutDiv.append(this.children[i].getLayoutDiv());
+					var childLayout = this.children[i].getLayoutElem();
+					addElemToVLayout(vl, childLayout);
 				}
+				
+				addElemToHLayout(this._layoutElem, vl);
+				
+				//console.log("layoutHtml("+this.text+")"+":  "+this._layoutElem.get(0).outerHTML);
+				
+				//assert(this._layoutElem.children('tbody').children('tr').children('td').length == 2);
 			} else {
-				return this.nodeElem;
+				this._layoutElem = this.getNodeElem();
 			}
 		}
-		return this._layoutDiv;
+		return this._layoutElem;
 	}
 
 	this.show = function() {
-	    $('#nodeLayer').append(this.getLayoutDiv());
+	    $('#nodeLayer').append(this.getLayoutElem());
 	}
 
 	this.hide = function() {
-	    $('#nodeLayer').remove(this.getLayoutDiv());
-	}
-
-	this.move = function(x, y) {
-		this.nodeElem.css('left', x);
-		this.nodeElem.css('top', y);
+	    $('#nodeLayer').remove(this.getLayoutElem());
 	}
 
 	this.x =function() {
-		return parseInt(this.nodeElem.css('left'));
+		return parseInt(this._nodeElem.css('left'), 10);
 	}
 
 	this.y =function() {
-		return parseInt(this.nodeElem.css('top'));
+		return parseInt(this._nodeElem.css('top'), 10);
 	}
 
 	this.height = function() {
-		this.nodeElem.height();
+		this._nodeElem.height();
 	}
 
 	this.width = function() {
-		this.nodeElem.width();
-	}
-
-	this.heightWithChildren = function() {
-		var height = 0;
-		if(this.children != null) {
-			for(var i=0; i<this.children.length; ++i){
-				height += this.children[i].heightWithChildren();
-			}
-			height += (this.children.length - 1) * this.ySpacing;
-		} else {
-			height = this.height();
-		}
-		//TODO: return max(height, cumulative height of children)
-		return Math.max(this.height(), height);
-	}
-
-	this.widthWithChildren = function() {
-		var width = this.width();
-		var maxChildWidth = 0;
-		
-		if(this.children != null) {
-			for(var i=0; i<this.children.length; ++i){
-				maxChildWidth = Math.max(maxChildWidth, this.children[i].widthWithChildren());
-			}
-			width += xSpacing;
-		}
-
-		width += maxChildWidth;
-		return width;
+		this._nodeElem.width();
 	}
 }
 
+
+
+function createHlayout() {
+	var table = $('<table/>', {'class':'hlayout'});
+	var row = $('<tr/>');
+	table.append(row);
+	return table;
+}
+
+function createVlayout() {
+	var table = $('<table/>', {'class':'vlayout'});
+	return table;
+}
+
+
+function addElemToHLayout(hl, elem) {
+	assert(elem.get(0).innerHTML.trim() != '');
+	var data = $('<td/>');
+	data.append(elem);
+	hl.find('tr').first().append(data);
+}
+
+function addElemToVLayout(vl, elem) {
+	assert(elem.get(0).innerHTML.trim() != '');
+	//console.log("addElemToVLayout(): elem=" + elem.get(0).outerHTML);
+	var data = $('<td/>');
+	data.append(elem);
+	var row = $('<tr/>');
+	row.append(data);
+	vl.append(row);
+}
+
+
 function createNodeElem(nodeData) {
-    var node = $("<div/>", {class:'node', id:'node'+nodeData.id, style:"position:absolute;"});
+    var node = $("<div/>", {'class':'node', id:'node'+nodeData.id});
             
     var input = $('<input/>',{
         type: "hidden",
@@ -116,7 +136,7 @@ function createNodeElem(nodeData) {
     });
     node.append(input);
 
-    var content = $("<div/>", {name:'content', style:'max-width:800px; width:auto; height:auto;'});
+    var content = $("<div/>", {name:'content', style:'max-width:800px; width:auto;'});
     var html = textile.convert(nodeData.text);
     content.html($.parseHTML(html));
 
@@ -127,7 +147,7 @@ function createNodeElem(nodeData) {
 function updateNode(nodeElem, newText) {
     var textElem = nodeElem.children('input[name="text"]');
     var text = "";
-    if(textElem.length != 0) {
+    if(textElem.length !== 0) {
         text = textElem.val();
     }
     if (text != newText) {
@@ -138,48 +158,29 @@ function updateNode(nodeElem, newText) {
     }
 }
 
-function createCanvas(width, height) {
-    var canvas = $("<canvas/>", {'class':'canvas', 'width': width, 'height':height});
-    return canvas;
-}
-
 function createEditor(width, height) {
     var editor = $("<textarea/>", {'class':'editor', 'width': width, 'height':height, id:'editor'});
     return editor;
 }
 
-function showNodeAtPos(nodeData, x, y) {
-    console.log("node:"+nodeData.id+" x:"+x+" y:"+y);
-    var nodeElem = createNodeElem(nodeData, x, y);
-    $('#nodeLayer').append(nodeElem);
-    return $('#node'+nodeData.id);
-}
-
-
-function showNodeWithDescendents(nodes, id, x, y) {
-    var nodeData = nodes[id];
-    var nodeElem = showNodeAtPos(nodeData, x, y);
-
-    x += nodeElem.width() + 50;
-
-    var retVal = {height: nodeElem.height(), width: nodeElem.width()};
-
-    if(nodeData.children != null) {
-        var children = nodeData.children;
-        console.log("children.length="+children.length);
-        for(var i=0; i<children.length; ++i) {
-            console.log("child:"+i);
-            var r = showNodeWithDescendents(nodes, children[i], x, y);
-            y += r.height + 50;
-            retVal.height += r.height;
-        }
-    }
-
-    return retVal;
-}
 
 function showNodes() {
-	showNodeWithDescendents(nodes, 0, 0, 0);
+	var root = new NodeWidget(nodes, 0);
+	root.show();
+}
+
+function drawIntro(svg) { 
+    svg.circle(75, 75, 50, 
+        {fill: 'none', stroke: 'red', strokeWidth: 3}); 
+    var g = svg.group({stroke: 'black', strokeWidth: 2}); 
+    svg.line(g, 15, 75, 135, 75); 
+    svg.line(g, 75, 15, 75, 135); 
+}
+
+function showConnectors() {
+	//var nodeLayer = $('#nodeLayer');
+	$('#nodeLayer').svg({onLoad: drawIntro});
+
 }
 
 function main() {
@@ -190,6 +191,7 @@ function main() {
     $('#container').append(nodeLayer);
 
     showNodes();
+    showConnectors();
     
     //var editor = createEditor(800, 400);
     //$('#container').append(editor);
@@ -205,4 +207,4 @@ function main() {
     /*setInterval(function () {
         updateNode(node1, contentElem.val());
     }, 500);*/
-};
+}
